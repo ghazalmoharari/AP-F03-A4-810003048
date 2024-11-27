@@ -1,0 +1,227 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+void error(string message)
+{
+    cerr << message << endl;
+    abort();
+}
+
+class Box
+{
+public:
+    Box(string t)
+    {
+        boxType = t;
+    }
+    string getType() { return boxType; };
+    vector<Flashcard *> &getFlashcards()
+    {
+        return boxFlashcards;
+    };
+    void addFlashcard(Flashcard *flashcard)
+    {
+        boxFlashcards.push_back(flashcard);
+    };
+    void removeFlashcard(Flashcard *flashcard)
+    {
+        boxFlashcards.erase(find(boxFlashcards.begin(), boxFlashcards.end(), flashcard));
+    };
+
+private:
+    string boxType;
+    vector<Flashcard *> boxFlashcards;
+};
+
+class Flashcard
+{
+public:
+    Flashcard(string q, string a, Box *b)
+    {
+        question = q;
+        answer = a;
+        currentBox = b;
+    };
+    string getQuestion() { return question; };
+    string getAnswer() { return answer; };
+    Box *getBox() { return currentBox; };
+    void setBox(Box *box) { currentBox = box; };
+    void addWrongAnswer()
+    {
+        numWrongAnswers++;
+    };
+
+private:
+    string question;
+    string answer;
+    Box *currentBox;
+    int numWrongAnswers = 0;
+};
+class ChangeBox
+{
+public:
+    ChangeBox(Flashcard *f, Box *b, bool answerValue)
+    {
+        card = f;
+        currentBox = b;
+    };
+    Flashcard *getFlashcard() { return card; };
+    Box *getCurrentBox() { return currentBox; };
+    void applyChange(Box *prevBox, Box *nextBox)
+    {
+        if (answerValue)
+        {
+            if (currentBox->getType() != "Monthly")
+            {
+                moveCard(nextBox);
+            }
+        }
+        else
+        {
+            moveCard(prevBox);
+        }
+    }
+
+private:
+    Flashcard *card;
+    Box *currentBox;
+    bool answerValue;
+    void moveCard(Box *newBox)
+    {
+        currentBox->removeFlashcard(card);
+        newBox->addFlashcard(card);
+        card->setBox(newBox);
+    }
+};
+class Day
+{
+public:
+    Day(int n)
+    {
+        dayNumber = n;
+        correctAnswers = 0;
+        wrongAnswers = 0;
+        practiced = false;
+    };
+    int getNum (){ return dayNumber;}
+    void practice()
+    {
+        practiced = true;
+    };
+    void addCorrect()
+    {
+        correctAnswers++;
+    };
+    void addWrong()
+    {
+        wrongAnswers++;
+    };
+private:
+    int dayNumber;
+    int correctAnswers;
+    int wrongAnswers;
+    bool practiced;
+};
+class Streak
+{
+public:
+    Streak(int s)
+    {
+        streakDays = s;
+    };
+
+    int getStreak() { return streakDays; };
+
+    void addStreak()
+    {
+        streakDays++;
+    };
+
+    void breakStreak()
+    {
+        streakDays = 0;
+    };
+
+private:
+    int streakDays = 0;
+};
+
+class LeitnerSystem
+{
+public:
+    LeitnerSystem()
+    {
+        boxes.push_back(new Box("Daily"));
+        boxes.push_back(new Box("Every3Days"));
+        boxes.push_back(new Box("Monthly"));
+    }
+
+    ~LeitnerSystem()
+    {
+        for (auto box : boxes)
+        {
+            delete box;
+        }
+    }
+
+    Box* getBox(const string &type)
+    {
+        for (auto box : boxes)
+        {
+            if (box->getType() == type)
+                return box;
+        }
+    }
+
+    vector<Box *> &getAllBoxes()
+    {
+        return boxes;
+    }
+    Streak* getStreak() { return streak; }
+    Box* getBox(const string &type)
+    {
+        for (auto box : boxes)
+        {
+            if (box->getType() == type)
+                return box;
+        }
+    }
+
+private:
+    vector<Box *> boxes;
+    Streak* streak;
+    vector<Day *> days;
+
+};
+
+int main()
+{
+    string command;
+    while (cin >> command)
+    {
+        if (command == "streak")
+        {
+            cout << "Your current streak is: " <<
+        }
+        if (command == "add_flashcard")
+        {
+            int numQuestions;
+            cin >> numQuestions;
+
+            for (int i = 0; i < numQuestions; ++i)
+            {
+                string question, answer;
+                //cin.ignore(); // Consume newline
+                getline(cin, question);
+                getline(cin, answer);
+
+                Flashcard *newCard = new Flashcard(question, answer, ("Daily"));
+            }
+            cout << "flashcards added to the daily box" << endl;
+        }
+
+    }
+}
