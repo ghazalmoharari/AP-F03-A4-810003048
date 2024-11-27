@@ -10,6 +10,8 @@ void error(string message)
     abort();
 }
 
+class Flashcard;
+
 class Box
 {
 public:
@@ -60,75 +62,11 @@ private:
     Box *currentBox;
     int numWrongAnswers = 0;
 };
-class ChangeBox
-{
-public:
-    ChangeBox(Flashcard *f, Box *b, bool answerValue)
-    {
-        card = f;
-        currentBox = b;
-    };
-    Flashcard *getFlashcard() { return card; };
-    Box *getCurrentBox() { return currentBox; };
-    void applyChange(Box *prevBox, Box *nextBox)
-    {
-        if (answerValue)
-        {
-            if (currentBox->getType() != "Monthly")
-            {
-                moveCard(nextBox);
-            }
-        }
-        else
-        {
-            moveCard(prevBox);
-        }
-    }
 
-private:
-    Flashcard *card;
-    Box *currentBox;
-    bool answerValue;
-    void moveCard(Box *newBox)
-    {
-        currentBox->removeFlashcard(card);
-        newBox->addFlashcard(card);
-        card->setBox(newBox);
-    }
-};
-class Day
-{
-public:
-    Day(int n)
-    {
-        dayNumber = n;
-        correctAnswers = 0;
-        wrongAnswers = 0;
-        practiced = false;
-    };
-    int getNum (){ return dayNumber;}
-    void practice()
-    {
-        practiced = true;
-    };
-    void addCorrect()
-    {
-        correctAnswers++;
-    };
-    void addWrong()
-    {
-        wrongAnswers++;
-    };
-private:
-    int dayNumber;
-    int correctAnswers;
-    int wrongAnswers;
-    bool practiced;
-};
 class Streak
 {
 public:
-    Streak(int s)
+    Streak(int s = 0)
     {
         streakDays = s;
     };
@@ -157,6 +95,7 @@ public:
         boxes.push_back(new Box("Daily"));
         boxes.push_back(new Box("Every3Days"));
         boxes.push_back(new Box("Monthly"));
+        streak = new Streak();
     }
 
     ~LeitnerSystem()
@@ -165,63 +104,64 @@ public:
         {
             delete box;
         }
+        delete streak;
     }
 
-    Box* getBox(const string &type)
+    Box *getBox(const string &type)
     {
         for (auto box : boxes)
         {
             if (box->getType() == type)
                 return box;
         }
+        return nullptr;
     }
 
     vector<Box *> &getAllBoxes()
     {
         return boxes;
     }
-    Streak* getStreak() { return streak; }
-    Box* getBox(const string &type)
-    {
-        for (auto box : boxes)
-        {
-            if (box->getType() == type)
-                return box;
-        }
-    }
+
+    Streak *getStreak() { return streak; }
 
 private:
     vector<Box *> boxes;
-    Streak* streak;
-    vector<Day *> days;
-
+    Streak *streak;
 };
 
 int main()
 {
+    LeitnerSystem leitnerSystem;
     string command;
+
     while (cin >> command)
     {
         if (command == "streak")
         {
-            cout << "Your current streak is: " <<
+            Streak *streak = leitnerSystem.getStreak();
+            cout << "Your current streak is: " << streak->getStreak() << endl;
         }
-        if (command == "add_flashcard")
+        else if (command == "add_flashcard")
         {
             int numQuestions;
             cin >> numQuestions;
+            cin.ignore();
+
+            Box *dailyBox = leitnerSystem.getBox("Daily");
 
             for (int i = 0; i < numQuestions; ++i)
             {
                 string question, answer;
-                //cin.ignore(); // Consume newline
                 getline(cin, question);
                 getline(cin, answer);
 
-                Flashcard *newCard = new Flashcard(question, answer, ("Daily"));
+                Flashcard *newCard = new Flashcard(question, answer, dailyBox);
+                dailyBox->addFlashcard(newCard);
             }
-            cout << "flashcards added to the daily box" << endl;
+            cout << "Flashcards added to the daily box." << endl;
         }
-
+    
     }
+
+    return 0;
 }
