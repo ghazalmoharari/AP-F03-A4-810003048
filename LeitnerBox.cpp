@@ -3,7 +3,11 @@
 #include <vector>
 #include <algorithm>
 using namespace std;
-
+const string DAILY_BOX_NAME="Daily";
+const string EVERY_3_DAYS_BOX_NAME="Every3Days";
+const string WEEKLY_BOX_NAME="Weekly";
+const string MONTHLY_BOX_NAME="Monthly";
+const string MASTERED_BOX_NAME="Mastered";
 void error(string message)
 {
     cerr << message << endl;
@@ -46,16 +50,22 @@ public:
         question = q;
         answer = a;
         currentBox = b;
+        numOfWrongAnswers=0;
     };
     string getQuestion() { return question; };
     string getAnswer() { return answer; };
     Box *getBox() { return currentBox; };
     void setBox(Box *box) { currentBox = box; };
+    int getNumOfWrongAnswers(){return numOfWrongAnswers;};
+    void setToZeroNumOfWrongAnswers(){numOfWrongAnswers=0;};
+    void addNumOfWrongAnswers(){numOfWrongAnswers++;};
+
 
 private:
     string question;
     string answer;
     Box *currentBox;
+    int numOfWrongAnswers;
 };
 
 class Streak
@@ -102,11 +112,11 @@ class LeitnerSystem
 public:
     LeitnerSystem()
     {
-        boxes.push_back(new Box("Daily"));
-        boxes.push_back(new Box("Every3Days"));
-        boxes.push_back(new Box("Weekly"));
-        boxes.push_back(new Box("Monthly"));
-        boxes.push_back(new Box("Mastered"));
+        boxes.push_back(new Box(DAILY_BOX_NAME));
+        boxes.push_back(new Box(EVERY_3_DAYS_BOX_NAME));
+        boxes.push_back(new Box(WEEKLY_BOX_NAME));
+        boxes.push_back(new Box(MONTHLY_BOX_NAME));
+        boxes.push_back(new Box(MASTERED_BOX_NAME));
         streak = new Streak();
         currentDay = 1;
         days.push_back(new Day(currentDay));
@@ -137,7 +147,7 @@ public:
     Streak *getStreak() { return streak; };
     void addFlashcard(string question, string answer)
     {
-        Box *dailyBox = getBox("Daily");
+        Box *dailyBox = getBox(DAILY_BOX_NAME);
         if (!dailyBox)
             error("Daily box not found!");
         Flashcard *newCard = new Flashcard(question, answer, dailyBox);
@@ -155,14 +165,14 @@ public:
         Box *currentBox = flashcard->getBox();
         string currentType = currentBox->getType();
 
-        if (currentType == "Daily")
-            moveFlashcard(flashcard, getBox("Every3Days"));
-        else if (currentType == "Every3Days")
-            moveFlashcard(flashcard, getBox("Weekly"));
-        else if (currentType == "Weekly")
-            moveFlashcard(flashcard, getBox("Monthly"));
-        else if (currentType == "Monthly")
-            moveFlashcard(flashcard, getBox("Mastered"));
+        if (currentType == DAILY_BOX_NAME)
+            moveFlashcard(flashcard, getBox(EVERY_3_DAYS_BOX_NAME));
+        else if (currentType == EVERY_3_DAYS_BOX_NAME)
+            moveFlashcard(flashcard, getBox(WEEKLY_BOX_NAME));
+        else if (currentType == WEEKLY_BOX_NAME)
+            moveFlashcard(flashcard, getBox(MONTHLY_BOX_NAME));
+        else if (currentType == MONTHLY_BOX_NAME)
+            moveFlashcard(flashcard, getBox(MASTERED_BOX_NAME));
     };
 
     void moveToPrevBox(Flashcard *flashcard)
@@ -170,13 +180,51 @@ public:
         Box *currentBox = flashcard->getBox();
         string currentType = currentBox->getType();
 
-        if (currentType == "Every3Days")
-            moveFlashcard(flashcard, getBox("Daily"));
-        else if (currentType == "Weekly")
-            moveFlashcard(flashcard, getBox("Every3Days"));
-        else if (currentType == "Monthly")
-            moveFlashcard(flashcard, getBox("Weekly"));
+        if (currentType == EVERY_3_DAYS_BOX_NAME)
+            moveFlashcard(flashcard, getBox(DAILY_BOX_NAME));
+        else if (currentType == WEEKLY_BOX_NAME)
+            moveFlashcard(flashcard, getBox(EVERY_3_DAYS_BOX_NAME));
+        else if (currentType == MONTHLY_BOX_NAME)
+            moveFlashcard(flashcard, getBox(WEEKLY_BOX_NAME));
     };
+
+   void moveCardsToPrevBox(string boxType)
+{
+    Box *box = getBox(boxType);
+    Box *prevBox = nullptr;
+    if (boxType == EVERY_3_DAYS_BOX_NAME)
+        prevBox = getBox(DAILY_BOX_NAME);
+    else if (boxType == WEEKLY_BOX_NAME)
+        prevBox = getBox(EVERY_3_DAYS_BOX_NAME);
+    else if (boxType == MONTHLY_BOX_NAME)
+        prevBox = getBox(WEEKLY_BOX_NAME);
+
+
+    vector<Flashcard *> &currentFlashcards = box->getFlashcards();
+    vector<Flashcard *> &prevFlashcards = prevBox->getFlashcards();
+    for (auto flashcard : currentFlashcards)
+    {
+        prevFlashcards.push_back(flashcard);
+        flashcard->setBox(prevBox); 
+    }
+    currentFlashcards.clear(); 
+}
+
+    void noPracticeBoxChange()
+{
+    if (currentDay % 3 == 0)
+    {
+        moveCardsToPrevBox(EVERY_3_DAYS_BOX_NAME);
+    }
+    if (currentDay % 7 == 0)
+    {
+        moveCardsToPrevBox(WEEKLY_BOX_NAME);
+    }
+    if (currentDay % 30 == 0)
+    {
+        moveCardsToPrevBox(MONTHLY_BOX_NAME);
+    }
+}
 
     Day *getDay(int dayNumber)
     {
@@ -200,6 +248,7 @@ public:
         if (isCorrect)
         {
             current->addCorrect();
+
         }
         else
         {
@@ -210,18 +259,19 @@ public:
     void reviewToday(int numQuestions)
     {
         vector<Flashcard *> todayCards;
-        for (auto boxType : {"Monthly", "Weekly", "Every3Days", "Daily"})
+        for (auto boxType : {MONTHLY_BOX_NAME, WEEKLY_BOX_NAME, EVERY_3_DAYS_BOX_NAME, DAILY_BOX_NAME})
         {
             Box *box = getBox(boxType);
             if (box)
             {
                 vector<Flashcard *> &cards = box->getFlashcards();
-                if (boxType == string("Every3Days") && currentDay % 3 != 0)
+                if (boxType == MONTHLY_BOX_NAME && currentDay % 30 != 0)
                     continue;
-                if (boxType == string("Weekly") && currentDay % 7 != 0)
+                if (boxType == WEEKLY_BOX_NAME && currentDay % 7 != 0)
                     continue;
-                if (boxType == string("Monthly") && currentDay % 30 != 0)
+                if (boxType == EVERY_3_DAYS_BOX_NAME && currentDay % 3 != 0)
                     continue;
+
                 todayCards.insert(todayCards.end(), cards.begin(), cards.end());
             }
         }
@@ -247,7 +297,11 @@ public:
             {
                 cout << "Your answer was incorrect. Don't worry! The correct answer is: " << card->getAnswer() << ". Keep practicing!" << endl;
                 addAnswerResult(false);
-                moveToPrevBox(card);
+                card->addNumOfWrongAnswers();
+                if (card->getNumOfWrongAnswers()==2){
+                    card->setToZeroNumOfWrongAnswers();
+                    moveToPrevBox(card);
+                }
             }
             reviewedCount++;
         }
@@ -284,7 +338,7 @@ public:
         Day *current = getDay(currentDay);
 
         int masteredCount = 0;
-        Box *masteredBox = getBox("Mastered");
+        Box *masteredBox = getBox(MASTERED_BOX_NAME);
         masteredCount = masteredBox->getFlashcards().size();
         int totalParticipatedDays = 0;
         for (auto day : days)
@@ -312,22 +366,14 @@ public:
         }
         else
         {
+            noPracticeBoxChange();
             streak->breakStreak();
         }
         currentDay++;
         days.push_back(new Day(currentDay));
         cout << "Good morning! Today is day " << currentDay << " of our journey." << endl;
-    }
-
-private:
-    vector<Box *> boxes;
-    int currentDay;
-    Streak *streak;
-    vector<Day *> days;
-};
-
-int main()
-{
+    };
+    void run(){
     LeitnerSystem leitnerSystem;
     string command;
 
@@ -380,4 +426,18 @@ int main()
             leitnerSystem.getProgressReport();
         }
     }
+}
+
+private:
+    vector<Box *> boxes;
+    int currentDay;
+    Streak *streak;
+    vector<Day *> days;
+};
+
+
+int main()
+{
+    LeitnerSystem* leitner = new LeitnerSystem();
+    leitner->run();
 }
